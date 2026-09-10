@@ -1,37 +1,41 @@
 from pathlib import Path
 
 from src.chunking import chunk_document
-from src.pdf_loader import extrair_pdf
+from src.pdf_loader import extrair_txt
 from src.vector_store import collection
 
 
-PDF_PATH = Path(
-    "documents/historia_do_vasco_10_mil_caracteres.pdf"
-)
+TXT_DIR = Path("documents/txt")
+txt_files = sorted(TXT_DIR.glob("*.txt"))[:10]
 
-text = extrair_pdf(str(PDF_PATH))
+ids = []
+documents = []
+metadatas = []
 
-chunks = chunk_document(text=text,chunk_size=500,overlap=50)
+for txt_path in txt_files:
+    text = extrair_txt(str(txt_path))
+    chunks = chunk_document(text=text, chunk_size=500, overlap=50)
 
-ids = [
-    f"{PDF_PATH.stem}_chunk_{i}"
-    for i in range(len(chunks))
-]
+    for i, chunk in enumerate(chunks):
+        ids.append(f"{txt_path.stem}_chunk_{i}")
+        documents.append(chunk)
+        metadatas.append(
+            {
+                "source": txt_path.name,
+                "chunk": i,
+            }
+        )
 
-metadatas = [
-    {
-        "source": PDF_PATH.name,
-        "chunk": i
-    }
-    for i in range(len(chunks))
-]
+# Reconstrói a coleção para não misturar documentos de indexações anteriores.
+existing_ids = collection.get(include=[])["ids"]
+if existing_ids:
+    collection.delete(ids=existing_ids)
 
 collection.upsert(
     ids=ids,
-    documents=chunks,
+    documents=documents,
     metadatas=metadatas
 )
 
-print(f"Documento: {PDF_PATH.name}")
-print(f"Caracteres extraídos: {len(text)}")
-print(f"Chunks armazenados: {len(chunks)}")
+print(f"Documentos processados: {len(txt_files)}")
+print(f"Chunks armazenados: {len(documents)}")
