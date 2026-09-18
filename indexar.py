@@ -1,8 +1,10 @@
 from pathlib import Path
 
-from src.chunking import semantic_chunk
+#from src.chunking import chunk_document
+#from src.chunking import semantic_chunk
 from src.pdf_loader import extrair_txt
 from src.vector_store import collection
+from src.chunking import sentence_chunking
 
 
 TXT_DIR = Path("documents/txt")
@@ -14,7 +16,8 @@ metadatas = []
 
 for txt_path in txt_files:
     text = extrair_txt(str(txt_path))
-    chunks = semantic_chunk(text=text, max_chars=1200)
+    chunks = sentence_chunking(text=text, max_chars=1200, overlap=100)
+    # chunks = semantic_chunk(text=text, max_chars=1200)
 
     for i, chunk in enumerate(chunks):
         ids.append(f"{txt_path.stem}_chunk_{i}")
